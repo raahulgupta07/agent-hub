@@ -1,0 +1,60 @@
+:root {
+  --bg: #f2eee6;
+  --surface: #fdfbf8;
+  --white: #ffffff;
+  --ink: #1c1712;
+  --ink-55: rgba(28, 23, 18, 0.55);
+  --ink-50: rgba(28, 23, 18, 0.5);
+  --ink-45: rgba(28, 23, 18, 0.45);
+  --ink-15: rgba(28, 23, 18, 0.15);
+  --ink-10: rgba(28, 23, 18, 0.1);
+  --accent: #c1502d;
+  --accent-hover: #9c4020;
+  --accent-red: #a53f21;
+  --dark: #16130f;
+  --dark-2: #33291f;
+  --ticker-text: #ede7dc;
+  --green: #3e9c5c;
+  --serif: 'Newsreader', Georgia, serif;
+  --mono: ui-monospace, Menlo, Monaco, 'Courier New', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid rgba(193, 80, 45, 0.35);
+  outline-offset: 1px;
+}
+
+button {
+  font-family: inherit;
+}
+
+@keyframes cah-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

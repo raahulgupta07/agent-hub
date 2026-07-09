@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    container_name: city-agents-hub
+    ports:
+      - "8100:3000"
+    volumes:
+      # JSON config store persists here across container rebuilds.
+      - ./data:/data
+    env_file:
+      - .env
+    restart: unless-stopped
