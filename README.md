@@ -127,10 +127,12 @@ BODY_SIZE_LIMIT=10485760
 
 Do **not** set `ADDRESS_HEADER` without a proxy (breaks client-IP resolution).
 
-### Security posture
+### Security / robustness
 Signed httpOnly `sameSite=lax` session cookie · `/admin` + config-write guards ·
 login rate-limit (8 fails / 15 min per IP) · URL sanitization (blocks
-`javascript:` etc.) · atomic + debounced JSON writes · body-size cap.
+`javascript:` etc.) · logo validation (raster-only, ≤600 KB, no SVG) · atomic +
+debounced JSON writes with a `.bak` backup (auto-recovers if the main file is
+corrupt) · body-size cap · `GET /api/health` liveness probe (Docker healthcheck).
 
 ---
 
@@ -143,6 +145,8 @@ docker compose down                 # stop
 docker compose up -d --build        # rebuild after code changes
 
 cat ./data/data.json                # inspect current content
+cp ./data/data.json.bak ./data/data.json && docker compose restart   # restore last good state
+curl localhost:8100/api/health      # {"ok":true}
 ```
 
 Change the admin password/secret → edit `.env` → `docker compose up -d`.

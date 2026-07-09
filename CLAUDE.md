@@ -64,6 +64,18 @@ Proxy shares docker net, forwards to `city-agents-hub:3000`, `proxy_buffering of
 Remote `git@github.com:raahulgupta07/agent-hub.git`, branch `main` (SSH).
 Commit + `git push origin main`. Never commit `.env` or `data/`.
 
+## Robustness (done)
+- Logo validation server-side: `src/lib/icon.js` `sanitizeIconData` (raster-only,
+  ≤600 KB, rejects SVG/external), applied in `PUT /api/config`.
+- `data.json` written atomically (tmp+rename) with a `.bak` copy; `readConfig`
+  auto-recovers from `.bak` if the main file is corrupt.
+- `GET /api/health` → `{ok:true}`; Dockerfile HEALTHCHECK hits it.
+
+## Landmines
+- adapter-node `getClientAddress()` THROWS if `ADDRESS_HEADER` is set but the
+  header is absent (direct hit / proxy not forwarding XFF) → 500 on POST /login.
+  Login wraps it in try/catch; only enable `ADDRESS_HEADER` when the proxy sends it.
+- `PROTOCOL_HEADER`/`HOST_HEADER` are safe when absent; only `ADDRESS_HEADER` throws.
+
 ## Known TODO (not blockers)
-Server-side logo size/type cap · `data.json` backup · healthcheck endpoint ·
-multi-admin concurrency guard.
+Multi-admin concurrency is last-write-wins (single-admin tool); `.bak` gives recovery.

@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { readConfig, writeConfig } from '$lib/server/store.js';
 import { normalizeAgentUrl } from '$lib/ssoUrl.js';
 import { sanitizeUrl } from '$lib/url.js';
+import { sanitizeIconData } from '$lib/icon.js';
 
 export function GET() {
   return json(readConfig());
@@ -20,7 +21,15 @@ export async function PUT({ request }) {
   // Server-side safety net: convert any pasted OIDC authorize URL to the
   // reusable SSO-start endpoint even if the client didn't.
   const agents = Array.isArray(body.agents)
-    ? body.agents.map((a) => (a && a.url ? { ...a, url: sanitizeUrl(normalizeAgentUrl(a.url)) } : a))
+    ? body.agents.map((a) =>
+        a
+          ? {
+              ...a,
+              url: a.url ? sanitizeUrl(normalizeAgentUrl(a.url)) : a.url,
+              iconData: sanitizeIconData(a.iconData)
+            }
+          : a
+      )
     : cur.agents;
   const ads = Array.isArray(body.ads)
     ? body.ads.map((a) => (a && a.url ? { ...a, url: sanitizeUrl(a.url) } : a))
