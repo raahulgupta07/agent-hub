@@ -62,6 +62,15 @@ function persist() {
   saveTimer = setTimeout(doPersist, 500);
 }
 
+// Force an immediate save (bypasses the debounce). Used by the admin Save button.
+export function saveNow() {
+  if (!browser) return;
+  clearTimeout(saveTimer);
+  status.saving = true;
+  status.error = false;
+  return doPersist();
+}
+
 async function doPersist() {
   saveTimer = null;
   try {

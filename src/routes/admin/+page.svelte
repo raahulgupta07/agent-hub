@@ -5,6 +5,7 @@
   import {
     store,
     status,
+    saveNow,
     addAgent,
     removeAgent,
     updateAgent,
@@ -67,6 +68,7 @@
       <span class="save" class:err={status.error} class:busy={status.saving}>
         <span class="save-dot"></span>{saveLabel}
       </span>
+      <button class="solid" onclick={saveNow} disabled={status.saving}>Save changes</button>
       <button class="ghost" onclick={() => goto('/')}>View public page</button>
       <a class="solid" href="/logout" data-sveltekit-reload>Log out</a>
     </div>
@@ -417,6 +419,10 @@
   }
   .solid:hover {
     background: var(--dark-2);
+  }
+  .solid:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
   .main {
     max-width: 1080px;
