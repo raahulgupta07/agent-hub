@@ -9,7 +9,15 @@ export function load({ locals }) {
 
 export const actions = {
   default: async ({ request, cookies, url, getClientAddress }) => {
-    const ip = getClientAddress();
+    // getClientAddress() throws if ADDRESS_HEADER is set but absent on the
+    // request (e.g. hitting the app directly, or a proxy not forwarding it).
+    // Fall back to the header/socket so login never 500s.
+    let ip = 'unknown';
+    try {
+      ip = getClientAddress();
+    } catch (e) {
+      ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    }
     if (isBlocked(ip)) {
       return fail(429, { error: 'Too many attempts. Try again in a few minutes.' });
     }
