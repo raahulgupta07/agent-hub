@@ -130,8 +130,8 @@ export function removeAgent(id) {
 export function updateAgent(id, field, value) {
   const a = store.agents.find((x) => x.id === id);
   if (a) {
-    // Auto-convert a pasted Keycloak/OIDC authorize URL into the SSO-start URL,
-    // then block dangerous schemes.
+    // Auto-convert a pasted OIDC authorize URL into the SSO-start URL, then
+    // block dangerous schemes.
     a[field] = field === 'url' ? sanitizeUrl(normalizeAgentUrl(value)) : value;
     persist();
   }

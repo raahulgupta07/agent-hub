@@ -91,7 +91,7 @@
           <button class="add" onclick={addAgent}>+ Add agent</button>
         </div>
         <p class="hint" style="margin:0 0 16px;">
-          SSO tip: you can paste a full Keycloak login URL
+          SSO tip: you can paste a full OIDC login URL
           (<code>…/openid-connect/auth?…</code>) into <strong>Redirect URL</strong> — it's
           auto-converted to the reusable <code>/oauth/&lt;provider&gt;/login</code> endpoint so the
           card works on every click.

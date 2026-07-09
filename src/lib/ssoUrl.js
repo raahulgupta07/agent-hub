@@ -1,10 +1,10 @@
-// Auto-convert a pasted OIDC/Keycloak *authorize* URL into the app's SSO-start
-// endpoint. Authorize URLs carry a one-time state/nonce and only work once, so a
-// card must instead point at the app's login-initiation route, which mints a
-// fresh flow every click.
+// Auto-convert a pasted OIDC *authorize* URL into the app's SSO-start endpoint.
+// Authorize URLs carry a one-time state/nonce and only work once, so a card must
+// instead point at the app's login-initiation route, which mints a fresh flow
+// every click.
 //
 // Example:
-//   in : https://iam.example.com/realms/x/protocol/openid-connect/auth
+//   in : https://idp.example.com/realms/x/protocol/openid-connect/auth
 //          ?response_type=code&client_id=APP
 //          &redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Foidc%2Fcallback
 //          &state=ONE_TIME&nonce=ONE_TIME
