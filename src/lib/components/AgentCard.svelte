@@ -38,8 +38,10 @@
   .wrap {
     position: relative;
     min-width: 0;
+    height: 100%;
   }
   .card {
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
