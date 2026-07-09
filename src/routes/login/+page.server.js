@@ -8,7 +8,7 @@ export function load({ locals }) {
 }
 
 export const actions = {
-  default: async ({ request, cookies, url, getClientAddress }) => {
+  default: async ({ request, cookies, getClientAddress }) => {
     // getClientAddress() throws if ADDRESS_HEADER is set but absent on the
     // request (e.g. hitting the app directly, or a proxy not forwarding it).
     // Fall back to the header/socket so login never 500s.
@@ -36,7 +36,10 @@ export const actions = {
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
-      secure: url.protocol === 'https:',
+      // Not Secure-flagged so the session works over BOTH http and https. (A
+      // Secure cookie is rejected by browsers over http, causing a login bounce
+      // when accessed via http behind a proxy that reports X-Forwarded-Proto.)
+      secure: false,
       maxAge: cookieMaxAge
     });
     throw redirect(303, '/admin');
