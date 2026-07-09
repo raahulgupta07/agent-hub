@@ -42,17 +42,15 @@
   );
 
   let groupTabs = $derived.by(() => {
-    const order = [];
+    // Show every managed group as a tab (even with 0 agents), plus any legacy
+    // group value on an agent that isn't in the managed list.
+    const names = store.groups.map((g) => g.name);
     agents.forEach((a) => {
-      const g = a.group || 'City Agents';
-      if (!order.includes(g)) order.push(g);
+      if (a.group && !names.includes(a.group)) names.push(a.group);
     });
-    return ['All', ...order].map((name) => ({
+    return ['All', ...names].map((name) => ({
       name,
-      count:
-        name === 'All'
-          ? agents.length
-          : agents.filter((a) => (a.group || 'City Agents') === name).length
+      count: name === 'All' ? agents.length : agents.filter((a) => a.group === name).length
     }));
   });
 

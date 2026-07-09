@@ -252,9 +252,8 @@
           {/each}
         </div>
         <p class="hint">
-          Assign an agent to a group with the <strong>Group</strong> dropdown on the
-          <strong>Agent Cards</strong> tab. A group's tab shows on the directory once at least one
-          agent uses it.
+          Every group here appears as a tab on the directory (in this order). Assign an agent to a
+          group with the <strong>Group</strong> dropdown on the <strong>Agent Cards</strong> tab.
         </p>
       </section>
     {/if}
