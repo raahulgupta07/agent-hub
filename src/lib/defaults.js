@@ -38,6 +38,13 @@ export function defaultAds() {
   ];
 }
 
+export function defaultGroups() {
+  return [
+    { id: 'g1', name: 'City GPT' },
+    { id: 'g2', name: 'City Agents' }
+  ];
+}
+
 export function defaultCategories() {
   return [
     { id: 'c1', name: 'Data & Analytics', color: 'oklch(62% 0.14 45)' },

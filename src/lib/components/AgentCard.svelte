@@ -14,7 +14,7 @@
 
 <div class="wrap">
   <a class="card" href={agent.url} target="_blank" rel="noopener">
-    <IconSlot name={agent.name} category={agent.category} size={48} radius={12} />
+    <IconSlot name={agent.name} category={agent.category} src={agent.iconData} size={48} radius={12} />
     <div class="body">
       <div class="name">{agent.name}</div>
       <div class="cat">

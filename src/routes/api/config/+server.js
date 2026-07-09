@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { readConfig, writeConfig } from '$lib/server/store.js';
+import { normalizeAgentUrl } from '$lib/ssoUrl.js';
+import { sanitizeUrl } from '$lib/url.js';
 
 export function GET() {
   return json(readConfig());
@@ -15,11 +17,20 @@ export async function PUT({ request }) {
     return json({ error: 'invalid json' }, { status: 400 });
   }
   const cur = readConfig();
+  // Server-side safety net: convert any pasted Keycloak authorize URL to the
+  // reusable SSO-start endpoint even if the client didn't.
+  const agents = Array.isArray(body.agents)
+    ? body.agents.map((a) => (a && a.url ? { ...a, url: sanitizeUrl(normalizeAgentUrl(a.url)) } : a))
+    : cur.agents;
+  const ads = Array.isArray(body.ads)
+    ? body.ads.map((a) => (a && a.url ? { ...a, url: sanitizeUrl(a.url) } : a))
+    : cur.ads;
   const next = writeConfig({
-    agents: Array.isArray(body.agents) ? body.agents : cur.agents,
-    ads: Array.isArray(body.ads) ? body.ads : cur.ads,
+    agents,
+    ads,
     tickerItems: Array.isArray(body.tickerItems) ? body.tickerItems : cur.tickerItems,
-    categories: Array.isArray(body.categories) ? body.categories : cur.categories
+    categories: Array.isArray(body.categories) ? body.categories : cur.categories,
+    groups: Array.isArray(body.groups) ? body.groups : cur.groups
   });
   return json(next);
 }

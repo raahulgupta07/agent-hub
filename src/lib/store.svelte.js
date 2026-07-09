@@ -1,4 +1,6 @@
 import { browser } from '$app/environment';
+import { normalizeAgentUrl } from './ssoUrl.js';
+import { sanitizeUrl } from './url.js';
 
 // Reactive app state (Svelte 5 runes). Agents/ads/ticker/categories are the
 // shared config loaded from the server (JSON file store); pins are a per-visitor
@@ -8,6 +10,7 @@ export const store = $state({
   ads: [],
   tickerItems: [],
   categories: [],
+  groups: [],
   pinned: []
 });
 
@@ -18,6 +21,7 @@ export function hydrate(data) {
   store.ads = data.ads ?? [];
   store.tickerItems = data.tickerItems ?? [];
   store.categories = data.categories ?? [];
+  store.groups = data.groups ?? [];
   if (browser) {
     try {
       const p = JSON.parse(localStorage.getItem('cah_pinned'));
@@ -34,23 +38,65 @@ export function catColor(name) {
   return c?.color || '#C1502D';
 }
 
-// Push the current shared config to the server (fire-and-forget).
-async function persist() {
+// Save status for the admin UI.
+export const status = $state({ saving: false, error: false, savedAt: 0 });
+
+function configBody() {
+  return JSON.stringify({
+    agents: store.agents,
+    ads: store.ads,
+    tickerItems: store.tickerItems,
+    categories: store.categories,
+    groups: store.groups
+  });
+}
+
+let saveTimer = null;
+
+// Debounced save: coalesce rapid edits (typing) into one PUT after 500ms.
+function persist() {
   if (!browser) return;
+  status.saving = true;
+  status.error = false;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doPersist, 500);
+}
+
+async function doPersist() {
+  saveTimer = null;
   try {
-    await fetch('/api/config', {
+    const res = await fetch('/api/config', {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        agents: store.agents,
-        ads: store.ads,
-        tickerItems: store.tickerItems,
-        categories: store.categories
-      })
+      body: configBody()
     });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    status.savedAt = Date.now();
   } catch (e) {
+    status.error = true;
     console.error('[store] persist failed:', e.message);
+  } finally {
+    status.saving = false;
   }
+}
+
+// Don't lose an edit made within the debounce window on tab close/navigation.
+if (browser) {
+  window.addEventListener('beforeunload', () => {
+    if (!saveTimer) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    try {
+      fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: configBody(),
+        keepalive: true
+      });
+    } catch (e) {
+      /* ignore */
+    }
+  });
 }
 
 function savePinned() {
@@ -71,7 +117,7 @@ export function addAgent() {
     description: 'Short description',
     url: 'https://',
     category: store.categories[0]?.name || 'Uncategorized',
-    group: 'City Agents'
+    group: store.groups[0]?.name || 'City Agents'
   });
   persist();
 }
@@ -84,7 +130,9 @@ export function removeAgent(id) {
 export function updateAgent(id, field, value) {
   const a = store.agents.find((x) => x.id === id);
   if (a) {
-    a[field] = value;
+    // Auto-convert a pasted Keycloak/OIDC authorize URL into the SSO-start URL,
+    // then block dangerous schemes.
+    a[field] = field === 'url' ? sanitizeUrl(normalizeAgentUrl(value)) : value;
     persist();
   }
 }
@@ -112,6 +160,32 @@ export function updateCategory(id, field, value) {
   }
 }
 
+// --- groups (the directory's tab headers) ---
+export function addGroup() {
+  store.groups.push({ id: 'g' + Date.now(), name: 'New Group' });
+  persist();
+}
+
+export function removeGroup(id) {
+  store.groups = store.groups.filter((g) => g.id !== id);
+  persist();
+}
+
+export function updateGroup(id, value) {
+  const g = store.groups.find((x) => x.id === id);
+  if (g) {
+    const old = g.name;
+    g.name = value;
+    // Keep agents pointing at the renamed group.
+    if (old && old !== value) {
+      store.agents.forEach((a) => {
+        if (a.group === old) a.group = value;
+      });
+    }
+    persist();
+  }
+}
+
 // --- pinned (per-visitor, localStorage) ---
 export function togglePin(id) {
   store.pinned = store.pinned.includes(id)
@@ -128,7 +202,7 @@ export function isPinned(id) {
 export function updateAd(id, field, value) {
   const a = store.ads.find((x) => x.id === id);
   if (a) {
-    a[field] = value;
+    a[field] = field === 'url' ? sanitizeUrl(value) : value;
     persist();
   }
 }

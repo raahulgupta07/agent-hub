@@ -1,8 +1,10 @@
 <script>
   import { goto } from '$app/navigation';
   import IconSlot from '$lib/components/IconSlot.svelte';
+  import { processLogo } from '$lib/logo.js';
   import {
     store,
+    status,
     addAgent,
     removeAgent,
     updateAgent,
@@ -12,16 +14,44 @@
     updateTicker,
     addCategory,
     removeCategory,
-    updateCategory
+    updateCategory,
+    addGroup,
+    removeGroup,
+    updateGroup
   } from '$lib/store.svelte.js';
 
   const tabs = [
     { key: 'agents', name: 'Agent Cards' },
+    { key: 'groups', name: 'Groups' },
     { key: 'categories', name: 'Categories' },
     { key: 'ticker', name: 'Ticker Announcements' },
     { key: 'ads', name: 'Ad Carousel' }
   ];
   let tab = $state('agents');
+
+  // Per-agent "remove background" preference (default on) + upload busy flag.
+  let stripBg = $state({});
+  let busy = $state({});
+
+  async function onLogo(agent, e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    busy[agent.id] = true;
+    try {
+      const dataUrl = await processLogo(file, { removeBg: stripBg[agent.id] !== false });
+      updateAgent(agent.id, 'iconData', dataUrl);
+    } catch (err) {
+      console.error(err);
+      alert('Could not process that image. Try a PNG or JPG.');
+    } finally {
+      busy[agent.id] = false;
+    }
+  }
+
+  let saveLabel = $derived(
+    status.error ? 'Save failed — retry' : status.saving ? 'Saving…' : 'All changes saved'
+  );
 </script>
 
 <div class="admin">
@@ -34,6 +64,9 @@
       </div>
     </div>
     <div class="header-right">
+      <span class="save" class:err={status.error} class:busy={status.saving}>
+        <span class="save-dot"></span>{saveLabel}
+      </span>
       <button class="ghost" onclick={() => goto('/')}>View public page</button>
       <a class="solid" href="/logout" data-sveltekit-reload>Log out</a>
     </div>
@@ -57,10 +90,41 @@
           </div>
           <button class="add" onclick={addAgent}>+ Add agent</button>
         </div>
+        <p class="hint" style="margin:0 0 16px;">
+          SSO tip: you can paste a full Keycloak login URL
+          (<code>…/openid-connect/auth?…</code>) into <strong>Redirect URL</strong> — it's
+          auto-converted to the reusable <code>/oauth/&lt;provider&gt;/login</code> endpoint so the
+          card works on every click.
+        </p>
         <div class="rows">
           {#each store.agents as agent (agent.id)}
             <div class="row">
-              <IconSlot name={agent.name} category={agent.category} size={56} radius={10} />
+              <div class="iconcol">
+                <IconSlot
+                  name={agent.name}
+                  category={agent.category}
+                  src={agent.iconData}
+                  size={56}
+                  radius={10}
+                />
+                <label class="uploadbtn" class:busy={busy[agent.id]}>
+                  {busy[agent.id] ? '…' : agent.iconData ? 'Replace' : 'Upload logo'}
+                  <input type="file" accept="image/*" hidden onchange={(e) => onLogo(agent, e)} />
+                </label>
+                <label class="bgtoggle">
+                  <input
+                    type="checkbox"
+                    checked={stripBg[agent.id] !== false}
+                    onchange={(e) => (stripBg[agent.id] = e.target.checked)}
+                  />
+                  Remove bg
+                </label>
+                {#if agent.iconData}
+                  <button class="clearlogo" onclick={() => updateAgent(agent.id, 'iconData', '')}>
+                    Clear logo
+                  </button>
+                {/if}
+              </div>
               <div class="fields">
                 <div class="field">
                   <label>Name</label>
@@ -73,12 +137,17 @@
                 </div>
                 <div class="field">
                   <label>Group</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. City GPT"
+                  <select
                     value={agent.group}
-                    oninput={(e) => updateAgent(agent.id, 'group', e.target.value)}
-                  />
+                    onchange={(e) => updateAgent(agent.id, 'group', e.target.value)}
+                  >
+                    {#if agent.group && !store.groups.some((g) => g.name === agent.group)}
+                      <option value={agent.group}>{agent.group}</option>
+                    {/if}
+                    {#each store.groups as g (g.id)}
+                      <option value={g.name}>{g.name}</option>
+                    {/each}
+                  </select>
                 </div>
                 <div class="field">
                   <label>Category</label>
@@ -152,9 +221,38 @@
           {/each}
         </div>
         <p class="hint">
-          Tip: the directory's <strong>group tabs</strong> (e.g. “City GPT”, “City Agents”) are set
-          per agent via the <strong>Group</strong> field on the Agent Cards tab — type a new group
-          name and a new tab appears automatically.
+          Tip: category pills appear on the public page in this order. Assign an agent's category
+          from the dropdown on the <strong>Agent Cards</strong> tab.
+        </p>
+      </section>
+    {/if}
+
+    {#if tab === 'groups'}
+      <section>
+        <div class="sec-head">
+          <div>
+            <h2>Groups</h2>
+            <p>The top tab row on the directory (e.g. “City GPT”, “City Agents”).</p>
+          </div>
+          <button class="add" onclick={addGroup}>+ Add group</button>
+        </div>
+        <div class="rows">
+          {#each store.groups as g (g.id)}
+            <div class="trow">
+              <input
+                class="serif"
+                type="text"
+                value={g.name}
+                oninput={(e) => updateGroup(g.id, e.target.value)}
+              />
+              <button class="remove sm" onclick={() => removeGroup(g.id)} aria-label="Remove">×</button>
+            </div>
+          {/each}
+        </div>
+        <p class="hint">
+          Assign an agent to a group with the <strong>Group</strong> dropdown on the
+          <strong>Agent Cards</strong> tab. A group's tab shows on the directory once at least one
+          agent uses it.
         </p>
       </section>
     {/if}
@@ -513,6 +611,93 @@
     font-size: 12.5px;
     line-height: 1.6;
     color: var(--ink-55);
+  }
+  .hint code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    background: rgba(28, 23, 18, 0.06);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .save {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-50);
+    margin-right: 4px;
+  }
+  .save-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+  .save.busy .save-dot {
+    background: #d97a4f;
+  }
+  .save.err {
+    color: var(--accent);
+  }
+  .save.err .save-dot {
+    background: var(--accent);
+  }
+  .iconcol {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    width: 66px;
+    flex-shrink: 0;
+  }
+  .uploadbtn {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: var(--ink);
+    padding: 5px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    text-transform: uppercase;
+  }
+  .uploadbtn:hover {
+    background: var(--dark-2);
+  }
+  .uploadbtn.busy {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .bgtoggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.02em;
+    color: var(--ink-50);
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .bgtoggle input {
+    accent-color: var(--accent);
+    width: 12px;
+    height: 12px;
+    padding: 0;
+  }
+  .clearlogo {
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--ink-45);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    text-transform: uppercase;
   }
   .ad-thumb {
     width: 140px;

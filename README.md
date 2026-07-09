@@ -61,6 +61,26 @@ npm start              # node build
 docker compose up -d --build
 ```
 
+## Production / deploy
+
+Behind a TLS reverse proxy (e.g. Nginx Proxy Manager) set these in `.env` so the
+app detects real https/host/client-IP and issues `Secure` cookies:
+
+```
+PROTOCOL_HEADER=x-forwarded-proto
+HOST_HEADER=x-forwarded-host
+ADDRESS_HEADER=x-forwarded-for        # only when a proxy actually sets it
+BODY_SIZE_LIMIT=10485760              # config PUTs carry logo data-URLs
+# ORIGIN=https://hub.example.com      # or pin the origin directly
+```
+
+Proxy must share the app's Docker network and forward to the **container
+name + internal port** (`city-agents-hub:3000`), with `proxy_buffering off`.
+
+Hardening in place: signed httpOnly `sameSite=lax` session cookie · `/admin` +
+config-write guards · login rate-limit (8 fails / 15 min per IP) · URL
+sanitization (blocks `javascript:` etc.) · atomic + debounced JSON writes.
+
 ## Structure
 
 ```

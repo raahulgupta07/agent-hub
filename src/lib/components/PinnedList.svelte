@@ -11,7 +11,7 @@
     <div class="list">
       {#each pinnedAgents as pa (pa.id)}
         <a class="row" href={pa.url} target="_blank" rel="noopener">
-          <IconSlot name={pa.name} category={pa.category} size={28} radius={8} />
+          <IconSlot name={pa.name} category={pa.category} src={pa.iconData} size={28} radius={8} />
           <div class="name">{pa.name}</div>
           <span class="dot" style="background:{catColor(pa.category)};"></span>
         </a>
